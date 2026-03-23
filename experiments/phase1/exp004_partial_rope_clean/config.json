@@ -1,0 +1,14 @@
+{
+  "experiment": "exp004_partial_rope_clean",
+  "phase": "phase1",
+  "image": "pgolf-ready:latest",
+  "run_id": "phase1_exp004_partial_rope_clean_20260321T171514",
+  "source_train_script": "/workspace/experiments/phase1/exp004_partial_rope_clean/train.py",
+  "started_ts": "20260321T171514",
+  "env_overrides": [
+    "ROPE_DIM=16",
+    "MAX_WALLCLOCK_SECONDS=600",
+    "TRAIN_LOG_EVERY=100",
+    "VAL_LOSS_EVERY=400"
+  ]
+}

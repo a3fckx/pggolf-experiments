@@ -1,0 +1,10 @@
+{
+  "experiment": "exp002_xsa4_clean",
+  "phase": "phase1",
+  "run_id": "phase1_exp002_xsa4_clean_20260321T162635",
+  "image": "pgolf-ready:latest",
+  "train_py": "/workspace/experiments/phase1/exp002_xsa4_clean/train.py",
+  "max_wallclock_seconds": 600,
+  "env_overrides": "XSA_LAYERS=4",
+  "started": "2026-03-21T16:26:35+00:00"
+}

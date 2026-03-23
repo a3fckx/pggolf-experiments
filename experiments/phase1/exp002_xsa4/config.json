@@ -1,0 +1,14 @@
+{
+  "experiment": "exp002_xsa4",
+  "phase": "phase1",
+  "image": "pgolf-ready:latest",
+  "run_id": "phase1_exp002_xsa4_20260321T164010",
+  "source_train_script": "/workspace/experiments/phase1/exp002_xsa4/train.py",
+  "started_ts": "20260321T164010",
+  "env_overrides": [
+    "XSA_LAYERS=4",
+    "MAX_WALLCLOCK_SECONDS=600",
+    "TRAIN_LOG_EVERY=100",
+    "VAL_LOSS_EVERY=400"
+  ]
+}

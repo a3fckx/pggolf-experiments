@@ -1,0 +1,8 @@
+# phase|experiment|max_wallclock_seconds|env_overrides
+phase1|exp002_xsa4_clean|600|XSA_LAYERS=4
+phase1|exp003_ema_clean|600|EMA_DECAY=0.997
+phase1|exp004_partial_rope_clean|600|ROPE_DIM=16
+phase1|exp005_ln_scale_clean|600|LN_SCALE_ENABLED=1
+phase1|exp006_smeargate_clean|600|SMEARGATE_ENABLED=1
+phase1|exp007_bigramhash_clean|600|BIGRAM_VOCAB_SIZE=2048 BIGRAM_DIM=128
+phase1|exp008_late_qat_clean|900|LATE_QAT_ENABLED=1 LATE_QAT_BITS=6 LATE_QAT_FRAC=0.04

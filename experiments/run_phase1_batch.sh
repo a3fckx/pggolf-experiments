@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$HOME/experiments"
+RUNNER="$ROOT/run_and_save.sh"
+PHASE="phase1"
+BATCH_NAME="${BATCH_NAME:-phase1_exclusive_$(date +%Y%m%dT%H%M%S)}"
+BATCH_LOG="$ROOT/${BATCH_NAME}.log"
+CURRENT_RUN_FILE="$ROOT/current_run.txt"
+STATUS_FILE="$ROOT/vm_status.txt"
+
+PHASE1_MAX_WALLCLOCK_SECONDS="${PHASE1_MAX_WALLCLOCK_SECONDS:-600}"
+PHASE1_TRAIN_LOG_EVERY="${PHASE1_TRAIN_LOG_EVERY:-100}"
+PHASE1_VAL_LOSS_EVERY="${PHASE1_VAL_LOSS_EVERY:-400}"
+export PGOLF_IMAGE="${PGOLF_IMAGE:-pgolf-ready:latest}"
+
+exec > >(tee -a "$BATCH_LOG") 2>&1
+
+echo "[batch] Starting $BATCH_NAME at $(date -Iseconds)"
+echo "[batch] Image: $PGOLF_IMAGE"
+echo "[batch] Default max wallclock seconds: $PHASE1_MAX_WALLCLOCK_SECONDS"
+echo "[batch] Train log every: $PHASE1_TRAIN_LOG_EVERY"
+echo "[batch] Val loss every: $PHASE1_VAL_LOSS_EVERY"
+
+run_exp() {
+  local exp_name=$1
+  shift
+  echo "$exp_name" > "$CURRENT_RUN_FILE"
+  printf '[%s] queued at %s\n' "$exp_name" "$(date -Iseconds)" > "$STATUS_FILE"
+  "$RUNNER" "$PHASE" "$exp_name" "$@"
+}
+
+run_exp exp001_11L_3xMLP_clean \
+  NUM_LAYERS=11 \
+  MLP_MULT=3 \
+  MAX_WALLCLOCK_SECONDS="$PHASE1_MAX_WALLCLOCK_SECONDS" \
+  TRAIN_LOG_EVERY="$PHASE1_TRAIN_LOG_EVERY" \
+  VAL_LOSS_EVERY="$PHASE1_VAL_LOSS_EVERY"
+
+run_exp exp002_xsa4_clean \
+  XSA_LAYERS=4 \
+  MAX_WALLCLOCK_SECONDS="$PHASE1_MAX_WALLCLOCK_SECONDS" \
+  TRAIN_LOG_EVERY="$PHASE1_TRAIN_LOG_EVERY" \
+  VAL_LOSS_EVERY="$PHASE1_VAL_LOSS_EVERY"
+
+run_exp exp003_ema_clean \
+  EMA_DECAY=0.997 \
+  MAX_WALLCLOCK_SECONDS="$PHASE1_MAX_WALLCLOCK_SECONDS" \
+  TRAIN_LOG_EVERY="$PHASE1_TRAIN_LOG_EVERY" \
+  VAL_LOSS_EVERY="$PHASE1_VAL_LOSS_EVERY"
+
+run_exp exp004_partial_rope_clean \
+  ROPE_DIM=16 \
+  MAX_WALLCLOCK_SECONDS="$PHASE1_MAX_WALLCLOCK_SECONDS" \
+  TRAIN_LOG_EVERY="$PHASE1_TRAIN_LOG_EVERY" \
+  VAL_LOSS_EVERY="$PHASE1_VAL_LOSS_EVERY"
+
+run_exp exp005_ln_scale_clean \
+  LN_SCALE_ENABLED=1 \
+  MAX_WALLCLOCK_SECONDS="$PHASE1_MAX_WALLCLOCK_SECONDS" \
+  TRAIN_LOG_EVERY="$PHASE1_TRAIN_LOG_EVERY" \
+  VAL_LOSS_EVERY="$PHASE1_VAL_LOSS_EVERY"
+
+run_exp exp006_smeargate \
+  SMEAR_ENABLED=1 \
+  MAX_WALLCLOCK_SECONDS="$PHASE1_MAX_WALLCLOCK_SECONDS" \
+  TRAIN_LOG_EVERY="$PHASE1_TRAIN_LOG_EVERY" \
+  VAL_LOSS_EVERY="$PHASE1_VAL_LOSS_EVERY"
+
+run_exp exp007_bigramhash \
+  BIGRAM_VOCAB_SIZE=2048 \
+  BIGRAM_DIM=128 \
+  MAX_WALLCLOCK_SECONDS="$PHASE1_MAX_WALLCLOCK_SECONDS" \
+  TRAIN_LOG_EVERY="$PHASE1_TRAIN_LOG_EVERY" \
+  VAL_LOSS_EVERY="$PHASE1_VAL_LOSS_EVERY"
+
+run_exp exp008_late_qat \
+  QAT_BITS=6 \
+  QAT_START_FRAC=0.96 \
+  MAX_WALLCLOCK_SECONDS="$PHASE1_MAX_WALLCLOCK_SECONDS" \
+  TRAIN_LOG_EVERY="$PHASE1_TRAIN_LOG_EVERY" \
+  VAL_LOSS_EVERY="$PHASE1_VAL_LOSS_EVERY"
+
+echo "idle" > "$CURRENT_RUN_FILE"
+printf '[batch] complete at %s\n' "$(date -Iseconds)" > "$STATUS_FILE"
+echo "[batch] Finished $BATCH_NAME at $(date -Iseconds)"
