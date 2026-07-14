@@ -1,0 +1,10 @@
+{
+  "experiment": "exp001_11L_3xMLP",
+  "phase": "phase1",
+  "run_id": "phase1_exp001_11L_3xMLP_20260321T161900",
+  "image": "pgolf-ready:latest",
+  "train_py": "/home/hotaisle/experiments/phase1/exp001_11L_3xMLP/train.py",
+  "max_wallclock_seconds": 600,
+  "env_overrides": "NUM_LAYERS=11 MLP_MULT=3",
+  "started": "2026-03-21T16:19:00+00:00"
+}

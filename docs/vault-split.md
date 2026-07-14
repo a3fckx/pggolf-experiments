@@ -1,45 +1,29 @@
-# Vault Split
+# Project And Vault Boundary
 
-This documents the new split between the experiment code repo and the Obsidian vault.
+Parameter Golf has one executable owner: `pggolf-experiments/`.
 
-## Repo Canonical
+## Project Canonical
 
-These should be edited in `pggolf-experiments/` going forward:
+Keep all of these in this repository:
 
-- `train.py` snapshots
-- `train_gpt.py`
-- launch and sync shell scripts
-- `config.json`
-- `env_overrides.txt`
-- manifest files such as `*.tsv`
-- run-specific `README.md` files that describe how a harness is supposed to be launched
+- source code, configs, manifests, and launch scripts
+- Marimo notebooks
+- environments and runner configuration
+- logs, metrics, `result.json`, and checkpoints
+- plots and generated artifacts
+- task history, operational notes, and experiment methodology
 
 ## Vault Canonical
 
-These should stay in `a3fckx/experiments/`:
+The Obsidian vault keeps only:
 
-- `leaderboard.md`
-- `insights.md`
-- `task-board.md`
-- `AGENT_COORDINATION.md`
-- `program.md`
-- logs such as `full_log*.txt`
-- outputs such as `result.json`
-- checkpoints such as `final_model.pt` and `final_model.int8.ptz`
-- synced plots and screenshots
-- historical run folders used for narrative or result tracking
+- the project context page
+- durable decisions and conclusions
+- sourced knowledge notes that matter beyond this project
+- lightweight current task and handoff state when multiple humans or agents coordinate
 
-## Migration Rule
+The project page is `/Users/a3fckx/Desktop/Attri/a3fckx/5 - Projects/Parameter Golf.md`.
 
-For new work:
+## Migration
 
-1. create or edit the experiment code in `pggolf-experiments/experiments/`
-2. run the experiment from the remote execution environment
-3. sync the resulting artifacts back into the vault
-4. update vault notes with findings
-
-## Current State
-
-This migration copied the reproducible code surface into `pggolf-experiments/experiments/` and intentionally left the vault untouched.
-
-That means some code still exists in both places right now. Until we do a second cleanup pass, treat the repo as the place to make new code changes and the vault as the place to read results.
+The former vault experiment tree was moved here on 2026-07-14. Imported documents with semantic collisions were preserved under distinct filenames rather than overwriting the existing curated docs. Historical run records may still contain their original absolute paths as provenance.

@@ -1,0 +1,14 @@
+{
+  "experiment": "exp004_partial_rope_promo",
+  "phase": "phase1",
+  "image": "pgolf-ready:latest",
+  "run_id": "phase1_exp004_partial_rope_promo_20260321T173745",
+  "source_train_script": "/home/hotaisle/experiments/phase1/exp004_partial_rope_promo/train.py",
+  "started_ts": "20260321T173745",
+  "env_overrides": [
+    "ROPE_DIM=16",
+    "MAX_WALLCLOCK_SECONDS=1800",
+    "TRAIN_LOG_EVERY=200",
+    "VAL_LOSS_EVERY=800"
+  ]
+}

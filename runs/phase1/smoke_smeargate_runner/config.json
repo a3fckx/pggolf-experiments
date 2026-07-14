@@ -1,0 +1,16 @@
+{
+  "phase": "phase1",
+  "experiment": "smoke_smeargate_runner",
+  "run_id": "smoke_smeargate_runner_20260321_162412",
+  "image": "pgolf-ready:latest",
+  "train_py": "/home/hotaisle/experiments/phase1/smoke_smeargate_runner/train.py",
+  "train_src": "/home/hotaisle/experiments/phase1/exp006_smeargate_clean/train.py",
+  "env_overrides": [
+    "SMEARGATE_ENABLED=1",
+    "MAX_WALLCLOCK_SECONDS=1",
+    "WARMUP_STEPS=0",
+    "VAL_LOSS_EVERY=0",
+    "TRAIN_LOG_EVERY=1"
+  ],
+  "started_at_utc": "2026-03-21T16:24:12.540859+00:00"
+}

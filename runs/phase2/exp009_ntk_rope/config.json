@@ -1,0 +1,32 @@
+{
+  "experiment": "exp009_ntk_rope",
+  "phase": "phase2",
+  "description": "NTK-aware RoPE (Neural Tangent Kernel-aware Rotary Positional Embedding)",
+  "purpose": "Enable length extrapolation by dynamically scaling RoPE base frequency when evaluation sequences are longer than training sequences",
+  "based_on": "PR #369 (signalrush) - 1.1328 BPB",
+  "key_change": "Modified Rotary class to apply NTK-aware base scaling: base_scaled = base * (seq_len / train_seq_len) ^ (1/dim)",
+  "expected_impact": "Better BPB on sliding window eval (stride=64) which uses longer sequences (2048) than training (1024)",
+  "train_config": {
+    "NUM_LAYERS": 11,
+    "MODEL_DIM": 512,
+    "NUM_HEADS": 8,
+    "NUM_KV_HEADS": 4,
+    "MLP_MULT": 3.0,
+    "TRAIN_SEQ_LEN": 1024,
+    "TRAIN_BATCH_TOKENS": 524288,
+    "MAX_WALLCLOCK_SECONDS": 600,
+    "MATRIX_LR": 0.025,
+    "MUON_WEIGHT_DECAY": 0.04,
+    "WARMUP_STEPS": 20
+  },
+  "env_vars": {
+    "NTK_ROPE_ENABLED": "1",
+    "TRAIN_SEQ_LEN": "1024",
+    "NTK_SCALE_EXPONENT": "0.0"
+  },
+  "control_baseline": "exp004_partial_rope_clean (1.4000 BPB)",
+  "success_criteria": "Match or beat 1.4000 BPB with NTK-RoPE enabled",
+  "next_steps_if_success": "Integrate NTK-RoPE into ALL subsequent experiments (Phase 2 and Phase 3)",
+  "hardware": "8x A40 (RunPod) or MI300X",
+  "created": "2026-03-22"
+}

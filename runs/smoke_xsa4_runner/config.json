@@ -1,0 +1,16 @@
+{
+  "phase": "phase1",
+  "experiment": "smoke_xsa4_runner",
+  "run_id": "smoke_xsa4_runner_20260321_161940",
+  "image": "pgolf-ready:latest",
+  "train_py": "/home/hotaisle/experiments/smoke_xsa4_runner/train.py",
+  "env_overrides": [
+    "/home/hotaisle/experiments/phase1/exp002_xsa4_clean/train.py",
+    "XSA_LAST_K_LAYERS=4",
+    "MAX_WALLCLOCK_SECONDS=1",
+    "WARMUP_STEPS=0",
+    "VAL_LOSS_EVERY=0",
+    "TRAIN_LOG_EVERY=1"
+  ],
+  "started_at_utc": "2026-03-21T16:19:40.393712+00:00"
+}

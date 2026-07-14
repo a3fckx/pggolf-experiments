@@ -1,0 +1,15 @@
+{
+  "experiment": "exp001_11L_3xMLP_clean",
+  "phase": "phase1",
+  "image": "pgolf-ready:latest",
+  "run_id": "phase1_exp001_11L_3xMLP_clean_20260321T162704",
+  "source_train_script": "/home/hotaisle/experiments/phase1/exp001_11L_3xMLP_clean/train.py",
+  "started_ts": "20260321T162704",
+  "env_overrides": [
+    "NUM_LAYERS=11",
+    "MLP_MULT=3",
+    "MAX_WALLCLOCK_SECONDS=600",
+    "TRAIN_LOG_EVERY=100",
+    "VAL_LOSS_EVERY=400"
+  ]
+}
