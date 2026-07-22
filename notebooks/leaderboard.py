@@ -16,20 +16,18 @@ app = marimo.App(width="medium", app_title="Parameter Golf — Run Leaderboard")
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
-# Parameter Golf — Run Leaderboard
+    mo.md(r"""
+    # Parameter Golf — Run Leaderboard
 
-Every Parameter Golf experiment runs remotely (RunPod / MI300X) and syncs a
-`result.json` back into the repository. This notebook ranks those artifacts by
-**quantized validation bits-per-byte** (lower is better), with float BPB, step
-count, step time, and parameter count alongside.
+    Every Parameter Golf experiment runs remotely (RunPod / MI300X) and syncs a
+    `result.json` back into the repository. This notebook ranks those artifacts by
+    **quantized validation bits-per-byte** (lower is better), with float BPB, step
+    count, step time, and parameter count alongside.
 
-Runs differ in step count and wallclock budget — the board is a lineage view, not
-one controlled bake-off. Prefer the sealed `notebooks/public/results.json`
-snapshot for the published site; local checkouts can also scan `../runs/**/result.json`.
-"""
-    )
+    Runs differ in step count and wallclock budget — the board is a lineage view, not
+    one controlled bake-off. Prefer the sealed `notebooks/public/results.json`
+    snapshot for the published site; local checkouts can also scan `../runs/**/result.json`.
+    """)
     return
 
 
@@ -100,13 +98,13 @@ def _(df, mo, pd, source):
 
     mo.md(
         f"""
-## Snapshot
+    ## Snapshot
 
-Found **{len(df)}** run record(s) from {source} · **{n_ranked}** ranked ·
-**{n_incomplete}** incomplete / smoke.
+    Found **{len(df)}** run record(s) from {source} · **{n_ranked}** ranked ·
+    **{n_incomplete}** incomplete / smoke.
 
-{best_line}
-"""
+    {best_line}
+    """
     )
     return
 
@@ -193,11 +191,11 @@ def _(df, mo):
             [
                 mo.md(
                     """
-### Incomplete / smoke runs
+    ### Incomplete / smoke runs
 
-These records synced without a quantized val BPB (wallclock smoke or failed
-validation). They stay out of the ranking.
-"""
+    These records synced without a quantized val BPB (wallclock smoke or failed
+    validation). They stay out of the ranking.
+    """
                 ),
                 mo.ui.table(incomplete[cols], selection=None),
             ]
@@ -208,25 +206,23 @@ validation). They stay out of the ranking.
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
-## Reading the board
+    mo.md(r"""
+    ## Reading the board
 
-- **Rank metric:** quantized validation BPB — the number that survives
-  deployment-style quantization. Float BPB is shown for reference.
-- **Lineage:** when present, `parent` + `change` record the single edit relative
-  to the previous run.
-- **Unequal budgets:** step counts and wallclock caps differ across rows; use the
-  board to track progress, not to claim a head-to-head winner without matched
-  budgets.
+    - **Rank metric:** quantized validation BPB — the number that survives
+      deployment-style quantization. Float BPB is shown for reference.
+    - **Lineage:** when present, `parent` + `change` record the single edit relative
+      to the previous run.
+    - **Unequal budgets:** step counts and wallclock caps differ across rows; use the
+      board to track progress, not to claim a head-to-head winner without matched
+      budgets.
 
-## Extending
+    ## Extending
 
-- New runs appear in local scans once their `result.json` lands under `runs/`.
-- Refresh the sealed public snapshot by regenerating `notebooks/public/results.json`
-  from the run tree, then re-pin publication hashes.
-"""
-    )
+    - New runs appear in local scans once their `result.json` lands under `runs/`.
+    - Refresh the sealed public snapshot by regenerating `notebooks/public/results.json`
+      from the run tree, then re-pin publication hashes.
+    """)
     return
 
 

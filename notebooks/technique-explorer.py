@@ -2,40 +2,38 @@
 # requires-python = ">=3.9"
 # dependencies = [
 #     "marimo",
-#     "pandas",
 # ]
 # ///
 
 import marimo
 
 __generated_with = "0.17.6"
-app = marimo.App(width="medium", app_title="Parameter Golf — Technique Explorer")
+app = marimo.App(
+    width="medium",
+    app_title="Parameter Golf — Technique Explorer",
+)
 
 
 @app.cell
 def _():
     import marimo as mo
-    import pandas as pd
-
-    return mo, pd
+    return (mo,)
 
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
-# Parameter Golf — Technique Explorer
+    mo.md(r"""
+    # Parameter Golf — Technique Explorer
 
-Under a fixed compute and parameter budget, which training ideas are worth a short
-directional check — and which ones need a full-length run before their effect is
-distinguishable from noise?
+    Under a fixed compute and parameter budget, which training ideas are worth a short
+    directional check — and which ones need a full-length run before their effect is
+    distinguishable from noise?
 
-This catalog ranks fourteen techniques by **signal timing**: how many steps you
-typically need before a change can be ranked. Use it to sequence a Parameter Golf
-budget: spend early steps on early-signal ideas, and reserve long runs for
-late-signal techniques.
-"""
-    )
+    This catalog ranks fourteen techniques by **signal timing**: how many steps you
+    typically need before a change can be ranked. Use it to sequence a Parameter Golf
+    budget: spend early steps on early-signal ideas, and reserve long runs for
+    late-signal techniques.
+    """)
     return
 
 
@@ -151,19 +149,19 @@ def _(mo, techniques):
         signal_counts[row["signal"]] += 1
     mo.md(
         f"""
-## Catalog size
+    ## Catalog size
 
-**{len(techniques)}** techniques ·
-**{signal_counts["early"]}** early ·
-**{signal_counts["medium"]}** medium ·
-**{signal_counts["late"]}** late
+    **{len(techniques)}** techniques ·
+    **{signal_counts["early"]}** early ·
+    **{signal_counts["medium"]}** medium ·
+    **{signal_counts["late"]}** late
 
-| Signal | Typical steps before ranking is meaningful |
-|---|---|
-| early | measurable within ~200–500 steps (some from step 1) |
-| medium | ~500–2000 steps |
-| late | 2000+ steps or post-training |
-"""
+    | Signal | Typical steps before ranking is meaningful |
+    |---|---|
+    | early | measurable within ~200–500 steps (some from step 1) |
+    | medium | ~500–2000 steps |
+    | late | 2000+ steps or post-training |
+    """
     )
     return
 
@@ -180,47 +178,44 @@ def _(mo):
 
 
 @app.cell
-def _(mo, pd, signal_filter, techniques):
+def _(mo, signal_filter, techniques):
     filtered = techniques
     if signal_filter.value != "all":
         filtered = [t for t in techniques if t["signal"] == signal_filter.value]
 
-    table = pd.DataFrame(filtered)[["name", "signal", "steps", "cost", "notes"]]
-    table = table.rename(
-        columns={
-            "name": "Technique",
-            "signal": "Signal",
-            "steps": "Steps to rank",
-            "cost": "Cost",
-            "notes": "Notes",
-        }
-    )
-    mo.vstack(
-        [
-            mo.md(f"Showing **{len(filtered)}** technique(s)."),
-            mo.ui.table(table, selection=None, page_size=20),
-        ]
+    rows = [
+        f"| {t['name']} | {t['signal']} | {t['steps']} | {t['cost']} | {t['notes']} |"
+        for t in filtered
+    ]
+    mo.md(
+        f"""
+    ## Techniques
+
+    Showing **{len(filtered)}** technique(s).
+
+    | Technique | Signal | Steps to rank | Cost | Notes |
+    |---|---|---|---|---|
+    {chr(10).join(rows)}
+    """
     )
     return
 
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
-## How to use this in an experiment budget
+    mo.md(r"""
+    ## How to use this in an experiment budget
 
-1. **Short directional checks (≤500 steps):** only early-signal techniques. Ranking a
-   late-signal idea here mostly measures noise.
-2. **Medium runs (500–2000 steps):** add capacity and averaging ideas (3×MLP, EMA,
-   Partial RoPE, AttnRes).
-3. **Full-length / promo runs:** reserve for late-signal techniques and for promoting
-   a medium-signal winner (for example Partial RoPE promo).
+    1. **Short directional checks (≤500 steps):** only early-signal techniques. Ranking a
+       late-signal idea here mostly measures noise.
+    2. **Medium runs (500–2000 steps):** add capacity and averaging ideas (3×MLP, EMA,
+       Partial RoPE, AttnRes).
+    3. **Full-length / promo runs:** reserve for late-signal techniques and for promoting
+       a medium-signal winner (for example Partial RoPE promo).
 
-Companion view: the public **Run Leaderboard** notebook ranks sealed `result.json`
-artifacts by quantized validation BPB.
-"""
-    )
+    Companion view: the public **Run Leaderboard** notebook ranks sealed `result.json`
+    artifacts by quantized validation BPB.
+    """)
     return
 
 
