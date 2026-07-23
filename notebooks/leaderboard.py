@@ -14,19 +14,30 @@ __generated_with = "0.23.14"
 app = marimo.App(width="medium", app_title="Parameter Golf — Run Leaderboard")
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     # Parameter Golf — Run Leaderboard
 
-    Every Parameter Golf experiment runs remotely (RunPod / MI300X) and syncs a
-    `result.json` back into the repository. This notebook ranks those artifacts by
-    **quantized validation bits-per-byte** (lower is better), with float BPB, step
-    count, step time, and parameter count alongside.
+    This board is the running score of our Parameter Golf experiments, and the loop
+    behind every row is the same: we edit one thing in the training harness, launch
+    it remotely (RunPod, a single MI300X) under a fixed wallclock cap, and the pod
+    syncs a `result.json` back into the repository when the run ends. The notebook
+    ranks those synced artifacts.
 
-    Runs differ in step count and wallclock budget — the board is a lineage view, not
-    one controlled bake-off. Prefer the sealed `notebooks/public/results.json`
-    snapshot for the published site; local checkouts can also scan `../runs/**/result.json`.
+    We rank on **quantized validation bits-per-byte** (lower is better) because the
+    quantized number is the one that survives deployment-style compression — a
+    variant that looks good in float but degrades after quantization is not a win
+    we get to keep. Float BPB, step count, step time, and parameter count ride
+    along for context.
+
+    One honest caveat before reading further: runs differ in step count and
+    wallclock budget, so the board is a lineage view — each row is one bounded
+    change on its parent — not one controlled bake-off. When we care about a
+    head-to-head claim, we re-run at matched budgets.
+
+    The published page renders the sealed `notebooks/public/results.json` snapshot;
+    local checkouts without that snapshot scan `../runs/**/result.json` instead.
     """)
     return
 
@@ -170,6 +181,45 @@ def _(alt, leaderboard, mo):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## How the board moved
+
+    The question behind the sequence was always the same: what single edit buys
+    quantized BPB inside a fixed wallclock? Read bottom-up, the chart is the path
+    from 2.067 to 1.295:
+
+    - **`baseline` → 2.0668:** the eager-mode start — at ~2,397 ms/step the 600 s
+      cap bought only 251 steps, so the wallclock went to overhead, not learning.
+    - **Compiled container → ~1.40:** the ROCm 7.2 / PyTorch 2.10 container cut
+      steps to ~735 ms, roughly 3x the steps per cap (`docs/results.md` puts that
+      baseline at 1.4005; the run is not in this sealed snapshot, but every
+      Phase 1 row below inherits it).
+    - **`exp002_xsa4` → 1.5135:** we tried exclusive self-attention (each token
+      attends to every position but itself) on the last four layers, but a slow
+      manual attention path confounded it (481 steps), so it never got a fair
+      read.
+    - **`exp003_ema_clean` → 1.4905:** EMA(0.997) weight averaging bought roughly
+      nothing in this short-run regime.
+    - **`exp001_11L_3xMLP_clean` → 1.4311:** deeper and wider (11 layers, 3x MLP,
+      26.5M params) helped per step, but ~992 ms steps cost total steps.
+    - **`exp004_partial_rope_clean` → 1.4032:** rotating only 16 of 64 head dims
+      was the edit that cost nothing — the best of the Phase 1 ablations and
+      slightly faster than its siblings (731.81 ms/step, 821 steps), landing
+      within noise of the compiled baseline's 1.4005.
+    - **`exp004_partial_rope_promo` → 1.2949:** the winner promoted to a 3x
+      wallclock (1,800 s, 2,463 steps) — most of the drop is simply more steps on
+      the strongest variant.
+
+    What we took from it: the biggest hop was systems (eager → compiled), the best
+    architecture edit was the cheapest one (partial RoPE), and promotion —
+    spending real budget only on the current winner — is what moved the headline
+    number.
+    """)
+    return
+
+
 @app.cell
 def _(df, mo):
     incomplete = df.loc[df["quant_val_bpb"].isna()].copy()
@@ -222,6 +272,34 @@ def _(mo):
     - New runs appear in local scans once their `result.json` lands under `runs/`.
     - Refresh the sealed public snapshot by regenerating `notebooks/public/results.json`
       from the run tree, then re-pin publication hashes.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## What we'd try next
+
+    The open questions in `docs/results.md` and `docs/insights.md` set the queue:
+
+    - **Keep stacking on partial RoPE, one bounded change per run.** It is the
+      carry-forward default, so every new feature gets tested against that base —
+      when a run regresses, there is exactly one suspect.
+    - **Give late QAT a longer tail.** It improved the quantized metric slightly,
+      but the short window kept the effect size small and the confidence low;
+      we would re-run it with a longer budget before promoting it.
+    - **Revisit SWA on longer runs.** It beat the causal-fix baseline yet landed
+      behind the partial-RoPE family; the short regime may be underselling it.
+    - **Re-run the contenders at matched budgets.** The board is lineage; before
+      claiming a head-to-head winner we would equalize steps and wallclock.
+    - **Treat evaluation policy as an experiment parameter.** Full validation
+      scans and final quantized evals are expensive enough to slow iteration, so
+      how often we evaluate is itself a knob worth tuning.
+
+    Two things we would not re-try soon: LN Scale (it behaves like a regularizer,
+    a poor fit while the model is this undertrained) and the larger 786,432-token
+    batch (a systems loss on A40 — slower steps erased the theoretical benefit).
     """)
     return
 
