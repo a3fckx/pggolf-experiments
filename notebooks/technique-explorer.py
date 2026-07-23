@@ -25,25 +25,36 @@ def _(mo):
     mo.md(r"""
     # Parameter Golf — Technique Explorer
 
-    Parameter Golf is our fixed-budget training game: a ~27M-parameter GPT, a fixed
-    wall-clock window, and one sealed metric — validation bits-per-byte after an
-    int8+zlib roundtrip, lower is better. The question we keep returning to is
-    simple: **how far can fixed-budget small-model training be pushed, and in what
-    order should the budget be spent?**
+    ## Reading brief
 
-    Early on we ranked techniques by how promising they sounded. That failed in a
-    specific way. Our 8xA40 pods give us roughly 1,070 steps in a 600-second
-    window, while the reference H100 record took 10,000+ steps. A technique whose
-    benefit only appears after a few thousand steps — a regularizer, a weight
-    average, an auxiliary loss — cannot show its effect inside that window, so
-    ranking a late-signal technique on a short run measures noise, not the
-    technique. We learned this the concrete way: LN Scale finished last in every
-    short-run metric, and the honest reading was "wrong window," not "bad idea."
+    **Question.** Under a fixed wall-clock cap and one sealed metric — int8+zlib
+    validation bits-per-byte, lower is better — how should we sequence experiments
+    on a ~27M-parameter GPT so each run buys information, not noise?
 
-    So this catalog organizes the fourteen techniques we track by **signal
-    timing**: how many steps a change typically needs before its effect is
-    distinguishable from run-to-run noise. Signal timing, not expected effect
-    size, decides where a technique belongs in the budget.
+    **Prior idea (experiment prioritization).** Training techniques differ in
+    *signal timing*: how many steps before an effect separates from run-to-run
+    variance. Competition ablations and the modded-nanogpt speedrun treat Muon,
+    QK-norm, and init choices as *early* (visible within 100–500 steps); EMA and
+    width changes as *medium* (~500–2,000 steps); depth recurrence, auxiliary
+    representation losses, and late QAT as *late* (2,000+ steps or the final tail).
+    Ranking a late-signal idea on a short probe therefore measures the window, not
+    the technique — the same mistake as grading a regularizer while the model is
+    still underfitting.
+
+    **What this catalog decides.** It tags fourteen tracked techniques by minimum
+    viable evaluation length and maps each band to a budget lane: cheap 600 s
+    directional screens for early signal, 1,800 s exclusive promotion for medium
+    signal, full-length slots for late signal. Expected effect size is secondary;
+    *when* an idea can be graded drives the queue.
+
+    **Concrete lesson.** LN Scale finished last on every short-run metric; the
+    honest read was "wrong window," not "bad idea." SmearGate's suspiciously low
+    loss at step 100 was a causal leak, not a breakthrough — suspiciously good
+    early numbers are a bug signal first.
+
+    Parameter Golf is our fixed-budget training game. The companion **Run
+    Leaderboard** notebook ranks sealed `result.json` artifacts; this view ranks
+    *ideas before we spend the next run*.
     """)
     return
 
@@ -160,26 +171,27 @@ def _(mo, techniques):
         signal_counts[row["signal"]] += 1
     mo.md(
         f"""
-    ## Reading the catalog
+    ## Timing-band scorecard
 
-    **{len(techniques)}** techniques ·
+    **{len(techniques)}** techniques in catalog ·
     **{signal_counts["early"]}** early ·
     **{signal_counts["medium"]}** medium ·
     **{signal_counts["late"]}** late
 
-    | Signal | Steps before ranking is meaningful | How we spend budget on it |
-    |---|---|---|
-    | early | ~200–500 steps (some from step 1) | cheap 600 s directional checks, several per day, contention tolerated |
-    | medium | ~500–2000 steps | 1800 s exclusive promotion runs, only after a clean early screen |
-    | late | 2000+ steps or post-training | full-length runs only; never graded from a short probe |
+    | Band | Count | Min steps to rank | Budget lane | Representative techniques |
+    |---|---:|---|---|---|
+    | early | {signal_counts["early"]} | 1–500 | 600 s contended screen; several per day | Muon, SmearGate, BigramHash, XSA, QK-Norm + Z-loss, OrthoInit + LN Scale |
+    | medium | {signal_counts["medium"]} | 500–2,000 | 1,800 s exclusive promotion after early screen | 3×MLP, EMA, AttnRes, Partial RoPE |
+    | late | {signal_counts["late"]} | 2,000+ or final tail | full-length slot only; never short-probe graded | Depth recurrence, STP-lite, JEPA-lite, Late QAT |
 
-    The sequencing rule we actually follow: screen early-signal ideas in short
-    contended batches, promote anything that survives to an exclusive 1800 s run,
-    and reserve long exclusive runs for late-signal techniques and finalists. Two
-    corollaries keep us honest. First, a short-run loss for a medium- or
-    late-signal technique is not evidence against it — it is evidence we used the
-    wrong window. Second, contended runs are only comparable to other runs in the
-    same concurrency bucket; promotion decisions always get an exclusive rerun.
+    | Claim | Evidence basis | Sequencing rule |
+    |---|---|---|
+    | Early band is short-probe viable | Muon vs AdamW visible by ~100 steps; QK-norm prevents divergence from step 1 (competition ablations; Keller Jordan speedrun) | Rank several early ideas per 600 s window |
+    | Medium band needs promotion length | EMA benefit needs ~1,000+ late snapshots; 3×MLP ranks reliably only after ~800–1,200 steps (Apple EMA scaling note; PG ablation table) | Exclusive 1,800 s rerun before trusting order |
+    | Late band is window-sensitive | Depth recurrence, JEPA/STP aux losses, Late QAT tail need thousands of steps or the last ~4% of training | Queue only when a long slot exists |
+    | Short loss ≠ negative verdict for late ideas | LN Scale regressed at ~1,070 steps on an underfit model | Retest at 5,000+ steps, not in the screen queue |
+
+    Filter the table below by band to build a run queue for the window you actually have.
     """
     )
     return
@@ -268,6 +280,24 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## Interpretation
+
+    **Budget sequencing takeaway.** Signal timing is the primary sort key for the
+    queue, not charisma or paper prestige. Burn cheap 600 s batches on early-band
+    ideas where a few hundred steps already separate signal from noise; spend
+    1,800 s exclusive runs only on medium-band survivors; hold late-band and
+    regularizer-shaped ideas until step counts match their design (thousands of
+    steps, or the final quantization tail). Promotion — re-running the current
+    winner at 3× wallclock — is how the sealed leaderboard moved from ~1.40 to
+    **1.2949** quantized val BPB; that hop is mostly more steps on the best
+    variant, not a new architecture trick.
+
+    **What this catalog is not.** It is not a controlled bake-off of all fourteen
+    techniques at matched budgets. Many rows are still hypotheses queued by timing
+    band; the narrative bullets above are selected run-record reads, not a complete
+    factorial. Before any head-to-head claim, equalize steps and wallclock — the
+    leaderboard lineage view exists for that honesty check.
+
     ## Where this goes next
 
     Honest next steps, taken from the open questions in our own run record:

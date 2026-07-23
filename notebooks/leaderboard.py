@@ -19,25 +19,28 @@ def _(mo):
     mo.md(r"""
     # Parameter Golf — Run Leaderboard
 
-    This board is the running score of our Parameter Golf experiments, and the loop
-    behind every row is the same: we edit one thing in the training harness, launch
-    it remotely (RunPod, a single MI300X) under a fixed wallclock cap, and the pod
-    syncs a `result.json` back into the repository when the run ends. The notebook
-    ranks those synced artifacts.
+    ## Reading brief
 
-    We rank on **quantized validation bits-per-byte** (lower is better) because the
-    quantized number is the one that survives deployment-style compression — a
-    variant that looks good in float but degrades after quantization is not a win
-    we get to keep. Float BPB, step count, step time, and parameter count ride
-    along for context.
+    **Question.** After each bounded edit to the training harness, what single
+    change buys the lowest **quantized** validation bits-per-byte inside a fixed
+    wallclock cap?
 
-    One honest caveat before reading further: runs differ in step count and
-    wallclock budget, so the board is a lineage view — each row is one bounded
-    change on its parent — not one controlled bake-off. When we care about a
-    head-to-head claim, we re-run at matched budgets.
+    **Prior idea (early vs late signal).** Fixed-budget experiment design treats
+    techniques by when their effect becomes measurable: optimizer and stability
+    edits show signal within hundreds of steps; capacity and averaging edits need
+    ~500–2,000; recurrence, auxiliary losses, and late quantization need
+    thousands of steps or the training tail. A board row therefore encodes both
+    *what we changed* and *how long we let it run* — unequal step counts are
+    features of the lineage, not noise to ignore.
 
-    The published page renders the sealed `notebooks/public/results.json` snapshot;
-    local checkouts without that snapshot scan `../runs/**/result.json` instead.
+    **What this snapshot decides.** It ranks sealed `notebooks/public/results.json`
+    artifacts on int8+zlib roundtrip val BPB (lower is better). Float BPB, step
+    count, and step time ride along for context. Rows without a quantized metric
+    stay out of the ranking as smoke or incomplete syncs.
+
+    **Honest caveat.** Runs differ in step count and wallclock budget. Read the
+    board as a **lineage view** — each row is one bounded change on its parent —
+    not one controlled bake-off. Head-to-head claims require matched budgets.
     """)
     return
 
@@ -117,6 +120,63 @@ def _(df, mo, pd, source):
     {best_line}
     """
     )
+    return (n_incomplete, n_ranked, ranked,)
+
+
+@app.cell(hide_code=True)
+def _(mo, n_incomplete, n_ranked, pd, ranked, source):
+    if ranked.empty:
+        scorecard = mo.md("_No ranked runs — scorecard empty._")
+    else:
+        ordered = ranked.sort_values("quant_val_bpb").reset_index(drop=True)
+        leader_bpb = float(ordered.iloc[0]["quant_val_bpb"])
+        rows = []
+        for rank, (_, row) in enumerate(ordered.iterrows(), start=1):
+            bpb = float(row["quant_val_bpb"])
+            delta = bpb - leader_bpb
+            _steps = row.get("steps")
+            steps_text = (
+                f"{int(_steps):,}" if _steps is not None and pd.notna(_steps) else "—"
+            )
+            change = row.get("change") or "—"
+            rows.append(
+                {
+                    "rank": rank,
+                    "experiment": row["experiment"],
+                    "quant val BPB": f"{bpb:.4f}",
+                    "Δ vs leader": f"+{delta:.4f}" if delta else "0.0000",
+                    "steps": steps_text,
+                    "lane": change,
+                }
+            )
+        scorecard = mo.vstack(
+            [
+                mo.md(
+                    f"""
+    ## Claim scorecard (sealed snapshot)
+
+    Numbers from {source} only — no live recompute. **{n_ranked}** ranked ·
+    **{n_incomplete}** excluded (null quantized BPB).
+    """
+                ),
+                mo.ui.table(pd.DataFrame(rows), selection=None, show_column_summaries=False),
+                mo.md(
+                    """
+    | Claim | Sealed evidence | Caveat |
+    |---|---|---|
+    | Current leader | `exp004_partial_rope_promo` @ **1.2949** quant val BPB, 2,463 steps | 3× wallclock promotion of partial-RoPE winner — mostly more steps, not a new edit |
+    | Best 600 s ablation | `exp004_partial_rope_clean` @ **1.4032**, 821 steps | Phase-1 screen; within noise of compiled ~1.40 baseline (baseline not in this snapshot) |
+    | Systems floor | `baseline` @ **2.0668**, 251 steps (eager, ~2,397 ms/step) | Wallclock went to overhead, not learning |
+    | Medium-signal miss | `exp003_ema_clean` @ **1.4905**, 815 steps | EMA needs late snapshots — short window, not a fair EMA verdict |
+    | Early-signal confound | `exp002_xsa4` @ **1.5135**, 481 steps | Slow manual attention path; implementation drowned architecture signal |
+
+    Δ vs leader is descriptive only. Unequal step counts mean this is **lineage
+    ordering**, not a matched-budget A/B table.
+    """
+                ),
+            ]
+        )
+    scorecard
     return
 
 
@@ -257,6 +317,22 @@ def _(df, mo):
 @app.cell
 def _(mo):
     mo.md(r"""
+    ## Interpretation
+
+    **Budget sequencing takeaway.** The sealed path is systems first (eager baseline
+    at **2.0668** → compiled ~1.40, inherited by Phase 1 rows), then cheap
+    architecture screens at 600 s, then promotion of the current winner at 3×
+    wallclock. The headline move to **1.2949** is `exp004_partial_rope_promo` at
+    2,463 steps — mostly more training on the best partial-RoPE variant, not a
+    new trick. That matches the experiment-prioritization rule: rank early edits
+    in short probes, spend long budgets only on survivors.
+
+    **Lineage, not controlled A/B.** Step counts span 251 to 2,463; wallclock caps
+    differ. The table orders progress through bounded edits (`parent` + `change`),
+    not a factorial at matched steps. `exp003_ema_clean` trailing at **1.4905** is
+    consistent with medium-signal timing on a short window, not proof EMA fails.
+    Before any head-to-head claim, re-run contenders at equal steps and wallclock.
+
     ## Reading the board
 
     - **Rank metric:** quantized validation BPB — the number that survives
